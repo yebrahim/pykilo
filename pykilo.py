@@ -26,7 +26,7 @@ def debug(msg):
   write_at(msg, window_rows - 2, 0)
 
 def write_at(string, r, c):
-  sys.stdout.write('\033[{};{}H'.format(r, c) + string)
+  sys.stdout.write('\033[{};{}H{}'.format(r, c, string))
 
 def move_to(r, c):
   sys.stdout.write(u'\u001b[{};{}H'.format(r, c))
@@ -42,29 +42,40 @@ def start():
   global col, row
   while True:
     ch = getch()
-    write_at(ch, row, col)
-    col += 1
-    move_to(row, col)
     if ch == ':':
-      if getch() == 'q':
-        break
-      else:
-        sys.stdout.write(ch)
-    #if ch == '\x7f':
-      #print('YAY')
+      cmd_col = 1
+      move_to(window_rows, 1)
+      sys.stdout.write(u'\u001b[2K')
+      write_at(':', window_rows, 1)
+      command = ''
+      while True:
+        ch = getch()
+        if ord(ch) == 13:
+          write_at('command: {}'.format(command), window_rows, 1)
+          if command == 'q':
+            exit()
+          break
+        cmd_col += 1
+        write_at(ch, window_rows, cmd_col)
+        command += ch
+    else:
+      write_at(str(ord(ch)), row, col)
+      row += 1
+      move_to(row, col)
 
 def init():
   global window_rows, window_columns, old_tty
   old_tty = termios.tcgetattr(sys.stdin)
   tty.setraw(sys.stdin)
   ts = os.popen('stty size', 'r').read().split()
-  window_rows, window_columns = ts[0], ts[1]
+  window_rows, window_columns = int(ts[0]), int(ts[1])
   cls()
   move_to(0, 0)
 
 def exit():
   cls()
   termios.tcsetattr(sys.stdin, termios.TCSANOW, old_tty)
+  sys.exit()
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
