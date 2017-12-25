@@ -3,19 +3,18 @@
 import sys, argparse, tty, os, termios
 
 col = row = 1
-lines = []
+text = []
 window_rows = window_columns = 0
 old_tty = None
 
 def load_file(filename):
-  global lines, col, row
-  lines = open(filename).readlines()
-  for l in lines:
+  global text, col, row
+  for l in open(filename).readlines():
     write_at(l, row, 1)
+    text.append([c for c in l])
     row += 1
-  row -= 1
-  col = len(lines[-1])
-  move_to(row, col)
+  row = col = 1
+  move_to(1, 1)
 
 def cls():
   print('\033[H\033[J')
