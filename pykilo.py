@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 
-import sys, argparse, tty, os
+import sys, argparse, tty, os, termios
 
 col = row = 1
 lines = []
 window_rows = window_columns = 0
+old_tty = None
 
 def load_file(filename):
   global lines, col, row
@@ -54,7 +55,8 @@ def start():
       #print('YAY')
 
 def init():
-  global window_rows, window_columns
+  global window_rows, window_columns, old_tty
+  old_tty = termios.tcgetattr(sys.stdin)
   tty.setraw(sys.stdin)
   ts = os.popen('stty size', 'r').read().split()
   window_rows, window_columns = ts[0], ts[1]
@@ -63,6 +65,7 @@ def init():
 
 def exit():
   cls()
+  termios.tcsetattr(sys.stdin, termios.TCSANOW, old_tty)
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
