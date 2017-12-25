@@ -47,24 +47,34 @@ def next_pos():
   move_to(row, col)
 
 def up():
-  global row
+  global row, col
   if row: row -=1
   move_to(row, col)
 
 def down():
-  global row, window_rows
-  if row < window_rows: row += 1
+  global row, text
+  if row < len(text) - 1: row += 1
   move_to(row, col)
 
 def right():
-  global col, window_columns
-  if col < window_columns: col += 1
+  global row, col, text
+  if col < len(text[row]): col += 1
   move_to(row, col)
 
 def left():
-  global col
+  global row, col
   if col: col -= 1
   move_to(row, col)
+
+# insert character into the given (0-based) row/column location of the
+# text 2D array. reallocate array if necessary.
+def insert_char(ch, r, c):
+  global text
+  while len(text) < r + 1:
+    text.append([])
+  while len(text[r]) < c + 1:
+    text[r].append([''])
+  text[r][c] = ch
 
 def handle_key(k, standalone=False):
   if k == 58: # ':'
@@ -77,7 +87,7 @@ def handle_key(k, standalone=False):
       k = getch()
       if k == 13: # '\n'
         write_at('Invalid command: {}'.format(command), window_rows, 1)
-        if command == 'q':
+        if command in ['q', 'quit']:
           exit()
         break
       cmd_col += 1
@@ -92,6 +102,7 @@ def handle_key(k, standalone=False):
       elif next1 == 68: left()
     else: handle_key(k, True)
   else:
+    insert_char(chr(k), row, col)
     write_at(chr(k), row, col)
     next_pos()
 
