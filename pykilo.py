@@ -38,6 +38,13 @@ def backspace():
     row -= 1 if row > 0 else 0
   write_at('', row, col)
 
+def next_pos():
+  global row, col
+  col += 1
+  if col > window_columns:
+    col = 1
+    row += 1
+
 def start():
   global col, row
   while True:
@@ -59,8 +66,8 @@ def start():
         write_at(ch, window_rows, cmd_col)
         command += ch
     else:
-      write_at(str(ord(ch)), row, col)
-      row += 1
+      write_at(ch, row, col)
+      next_pos()
       move_to(row, col)
 
 def init():
