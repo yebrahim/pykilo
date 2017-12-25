@@ -1,48 +1,65 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
-import sys, argparse, tty, termios, fcntl, os
+import sys, argparse, tty, os
 
-cursorX = cursorY = 0
+col = row = 1
+lines = []
+window_rows = window_columns = 0
 
 def load_file(filename):
+  global lines, col, row
   lines = open(filename).readlines()
-  cursorY = len(lines) + 1
-  cursorX = len(lines[-1])
-  write_at(''.join(lines), 0, 0)
-  write_at('hi', cursorX, cursorY - 1)
+  for l in lines:
+    write_at(l, row, 1)
+    row += 1
+  row -= 1
+  col = len(lines[-1])
+  move_to(row, col)
 
 def cls():
   print('\033[H\033[J')
 
 def getch():
-  old_settings = termios.tcgetattr(0)
-  new_settings = old_settings[:]
-  new_settings[3] &= ~termios.ICANON & ~termios.ECHO
-  try:
-    termios.tcsetattr(0, termios.TCSANOW, new_settings)
-    ch = sys.stdin.read(1)
-  finally:
-    termios.tcsetattr(0, termios.TCSANOW, old_settings)
-  return ch
+  return sys.stdin.read(1)
 
-def write_at(string, x, y):
-  print('\033[{};{}H'.format(y, x) + string)
+def debug(msg):
+  write_at(msg, window_rows - 2, 0)
+
+def write_at(string, r, c):
+  sys.stdout.write('\033[{};{}H'.format(r, c) + string)
+
+def move_to(r, c):
+  sys.stdout.write(u'\u001b[{};{}H'.format(r, c))
+
+def backspace():
+  global col, row
+  col -= 1
+  if col == -1:
+    row -= 1 if row > 0 else 0
+  write_at('', row, col)
 
 def start():
-  while 1:
+  global col, row
+  while True:
     ch = getch()
-    sys.stdout.write(ch)
-    sys.stdout.flush()
+    write_at(ch, row, col)
+    col += 1
+    move_to(row, col)
     if ch == ':':
       if getch() == 'q':
         break
       else:
-        print(ch, end='')
-    if ch == '\x7f':
-      print('YAY')
+        sys.stdout.write(ch)
+    #if ch == '\x7f':
+      #print('YAY')
 
 def init():
+  global window_rows, window_columns
+  tty.setraw(sys.stdin)
+  ts = os.popen('stty size', 'r').read().split()
+  window_rows, window_columns = ts[0], ts[1]
   cls()
+  move_to(0, 0)
 
 def exit():
   cls()
