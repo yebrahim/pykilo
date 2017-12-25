@@ -7,6 +7,9 @@ text = []
 window_rows = window_columns = 0
 old_tty = None
 
+def write_at(string, r, c):
+  sys.stdout.write('\033[{};{}H{}'.format(r, c, str(string)))
+
 def load_file(filename):
   global text, col, row
   for l in open(filename).readlines():
@@ -20,13 +23,10 @@ def cls():
   print('\033[H\033[J')
 
 def getch():
-  return sys.stdin.read(1)
+  return ord(sys.stdin.read(1))
 
 def debug(msg):
   write_at(msg, window_rows - 2, 0)
-
-def write_at(string, r, c):
-  sys.stdout.write('\033[{};{}H{}'.format(r, c, string))
 
 def move_to(r, c):
   sys.stdout.write(u'\u001b[{};{}H'.format(r, c))
@@ -39,36 +39,67 @@ def backspace():
   write_at('', row, col)
 
 def next_pos():
-  global row, col
+  global row, col, window_columns
   col += 1
   if col > window_columns:
     col = 1
     row += 1
+  move_to(row, col)
+
+def up():
+  global row
+  if row: row -=1
+  move_to(row, col)
+
+def down():
+  global row, window_rows
+  if row < window_rows: row += 1
+  move_to(row, col)
+
+def right():
+  global col, window_columns
+  if col < window_columns: col += 1
+  move_to(row, col)
+
+def left():
+  global col
+  if col: col -= 1
+  move_to(row, col)
+
+def handle_key(k, standalone=False):
+  if k == 58: # ':'
+    cmd_col = 1
+    move_to(window_rows, 1)
+    sys.stdout.write(u'\u001b[2K')
+    write_at(':', window_rows, 1)
+    command = ''
+    while True:
+      k = getch()
+      if k == 13: # '\n'
+        write_at('Invalid command: {}'.format(command), window_rows, 1)
+        if command == 'q':
+          exit()
+        break
+      cmd_col += 1
+      write_at(chr(k), window_rows, cmd_col)
+      command += chr(k)
+  elif k == 27 and not standalone: # arrow key code start
+    if getch() == 91:
+      next1 = getch()
+      if next1 == 65: up()
+      elif next1 == 66: down()
+      elif next1 == 67: right()
+      elif next1 == 68: left()
+    else: handle_key(k, True)
+  else:
+    write_at(chr(k), row, col)
+    next_pos()
 
 def start():
   global col, row
   while True:
     ch = getch()
-    if ch == ':':
-      cmd_col = 1
-      move_to(window_rows, 1)
-      sys.stdout.write(u'\u001b[2K')
-      write_at(':', window_rows, 1)
-      command = ''
-      while True:
-        ch = getch()
-        if ord(ch) == 13:
-          write_at('command: {}'.format(command), window_rows, 1)
-          if command == 'q':
-            exit()
-          break
-        cmd_col += 1
-        write_at(ch, window_rows, cmd_col)
-        command += ch
-    else:
-      write_at(ch, row, col)
-      next_pos()
-      move_to(row, col)
+    handle_key(ch)
 
 def init():
   global window_rows, window_columns, old_tty
