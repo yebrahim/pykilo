@@ -10,11 +10,25 @@ old_tty = None
 def write_at(string, r, c):
   sys.stdout.write('\033[{};{}H{}'.format(r, c, str(string)))
 
+# insert character into the given (0-based) row/column location of the
+# text 2D array. reallocate array if necessary.
+def insert_char(ch, r, c):
+  global text
+  while len(text) < r + 1:
+    text.append([])
+  while len(text[r]) < c + 1:
+    text[r].append([''])
+  text[r][c] = ch
+
 def load_file(filename):
   global text, col, row
+  row = 1
   for l in open(filename).readlines():
     write_at(l, row, 1)
-    text.append([c for c in l])
+    col = 1
+    for c in l[:-1]:
+      insert_char(c, row, col)
+      col += 1
     row += 1
   row = col = 1
   move_to(1, 1)
@@ -48,33 +62,25 @@ def next_pos():
 
 def up():
   global row, col
-  if row: row -=1
+  if row > 1: row -=1
+  col = min(col, len(text[row]) -1)
   move_to(row, col)
 
 def down():
-  global row, text
+  global row, col, text
   if row < len(text) - 1: row += 1
+  col = min(col, len(text[row]) -1)
   move_to(row, col)
 
 def right():
   global row, col, text
-  if col < len(text[row]): col += 1
+  if col < len(text[row]) - 1: col += 1
   move_to(row, col)
 
 def left():
   global row, col
-  if col: col -= 1
+  if col > 1: col -= 1
   move_to(row, col)
-
-# insert character into the given (0-based) row/column location of the
-# text 2D array. reallocate array if necessary.
-def insert_char(ch, r, c):
-  global text
-  while len(text) < r + 1:
-    text.append([])
-  while len(text[r]) < c + 1:
-    text[r].append([''])
-  text[r][c] = ch
 
 def handle_key(k, standalone=False):
   if k == 58: # ':'
